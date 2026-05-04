@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuesto By Yahir RD 💎</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --bg: #f8fafc; --card: rgba(255, 255, 255, 0.9); --text: #0f172a; }
+        .dark-mode { --bg: #020617; --card: rgba(30, 41, 59, 0.8); --text: #f8fafc; }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            transition: all 0.5s ease;
+        }
+
+        .glass-card { background: var(--card); backdrop-blur: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .bg-custom-input { background: rgba(0,0,0,0.03); }
+        .dark-mode .bg-custom-input { background: rgba(255,255,255,0.05); }
+        
+        .icon-circle { 
+            width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; 
+            background: white; border-radius: 15px; font-size: 1.2rem;
+            box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+        }
+        .dark-mode .icon-circle { background: #1e293b; }
+
+        .secondary-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.5; }
+        
+        #toast { 
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); 
+            background: #1e293b; color: white; padding: 12px 24px; border-radius: 1.5rem; 
+            transition: 0.5s; z-index: 1000; font-weight: 800; 
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <div>
+                <h1 class="text-4xl font-extrabold tracking-tight">Presupuesto By Yahir <span class="text-blue-600">RD</span> 💎</h1>
+                <p class="secondary-label mt-1">Finanzas Personales • <span id="mode-text">Modo Claro</span></p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="glass-card p-4 px-6 rounded-[2rem] shadow-lg flex items-center gap-4">
+                    <div class="text-right">
+                        <span class="secondary-label block">Ingreso Mensual</span>
+                        <div class="flex items-center text-2xl font-black">
+                            <span class="text-blue-600 mr-1">$</span>
+                            <input type="number" id="inputTotalMensual" class="w-28 bg-transparent focus:outline-none" oninput="updateFromTotal(this.value)">
+                        </div>
+                    </div>
+                    <div class="icon-circle shadow-sm">💰</div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportAll()" class="bg-blue-600 text-white px-5 py-3 rounded-2xl hover:bg-blue-700 transition-all shadow-md text-sm font-bold">💾 Guardar</button>
+                    <button onclick="downloadCode()" class="bg-slate-700 text-white px-5 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-md text-sm font-bold">📄 Código</button>
+                    <button onclick="toggleDarkMode()" id="darkModeBtn" class="bg-white text-slate-800 px-5 py-3 rounded-2xl transition-all text-sm font-bold shadow-md border border-slate-200">🌙 Modo Noche</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Columna Izquierda: Estadísticas y Gráfico -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Potencial de Ahorro -->
+                <div id="ahorroCard" class="p-8 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden transition-all duration-500 min-h-[180px] flex flex-col justify-between">
+                    <div class="relative z-10">
+                        <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Potencial de Ahorro</span>
+                        <div class="text-5xl font-black mt-2" id="totalAhorro">$0</div>
+                    </div>
+                    <div class="relative z-10 flex justify-between items-end">
+                        <div class="px-4 py-1.5 bg-white/20 rounded-xl text-[10px] font-black backdrop-blur-md" id="ahorroPorcentaje">0% del total</div>
+                        <span class="text-2xl" id="statusEmoji">🚀</span>
+                    </div>
+                </div>
+
+                <!-- Flujo por Quincena (Restaurado según imagen) -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-lg space-y-6">
+                    <h3 class="secondary-label mb-4 px-2 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-blue-600 rounded-full"></span> Flujo por Quincena
+                    </h3>
+                    
+                    <!-- Tarjeta Q1 -->
+                    <div class="bg-custom-input p-6 rounded-[2rem] border border-black/5 dark:border-white/5">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="secondary-label text-[9px]">1ª Quincena</span>
+                                <div class="flex items-center text-2xl font-black">
+                                    <span class="text-blue-600 mr-1">$</span>
+                                    <input type="number" id="sueldoQ1" class="bg-transparent w-24 focus:outline-none" oninput="saveAndRefresh()">
+                                </div>
+                                <div class="text-[10px] font-bold text-blue-500/80 mt-1">Gasto: <span id="gastoQ1Text">$0</span></div>
+                            </div>
+                            <div class="text-right">
+                                <span class="secondary-label text-[9px]">Resto</span>
+                                <div class="text-xl font-black" id="ahorroQ1">$0</div>
+                            </div>
+                        </div>
+                        <div class="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden mt-4">
+                            <div id="barQ1" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full transition-all duration-500" style="width: 0%;"></div>
+                        </div>
+                        <div class="flex justify-between mt-2">
+                            <span class="secondary-label text-[9px]">Carga</span>
+                            <span class="text-[10px] font-black text-blue-600" id="cargaQ1Perc">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta Q2 -->
+                    <div class="bg-custom-input p-6 rounded-[2rem] border border-black/5 dark:border-white/5">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="secondary-label text-[9px]">2ª Quincena</span>
+                                <div class="flex items-center text-2xl font-black">
+                                    <span class="text-indigo-600 mr-1">$</span>
+                                    <input type="number" id="sueldoQ2" class="bg-transparent w-24 focus:outline-none" oninput="saveAndRefresh()">
+                                </div>
+                                <div class="text-[10px] font-bold text-indigo-500/80 mt-1">Gasto: <span id="gastoQ2Text">$0</span></div>
+                            </div>
+                            <div class="text-right">
+                                <span class="secondary-label text-[9px]">Resto</span>
+                                <div class="text-xl font-black" id="ahorroQ2">$0</div>
+                            </div>
+                        </div>
+                        <div class="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden mt-4">
+                            <div id="barQ2" class="bg-gradient-to-r from-indigo-400 to-purple-500 h-full transition-all duration-500" style="width: 0%;"></div>
+                        </div>
+                        <div class="flex justify-between mt-2">
+                            <span class="secondary-label text-[9px]">Carga</span>
+                            <span class="text-[10px] font-black text-indigo-600" id="cargaQ2Perc">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Dona -->
+                <div class="glass-card p-8 rounded-[2.5rem] shadow-lg flex flex-col items-center">
+                    <div class="w-40 h-40 mb-6">
+                        <canvas id="mainPieChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 w-full">
+                        <div class="bg-custom-input p-4 rounded-2xl text-center">
+                            <span class="secondary-label block mb-1">Estado</span>
+                            <span class="text-sm font-black" id="statusText">Saludable</span>
+                        </div>
+                        <div class="bg-custom-input p-4 rounded-2xl text-center">
+                            <span class="secondary-label block mb-1">Eficiencia</span>
+                            <span class="text-sm font-black" id="percEfect">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Tabla Principal -->
+            <div class="lg:col-span-8">
+                <div class="glass-card rounded-[2.5rem] shadow-xl overflow-hidden min-h-full">
+                    <div class="p-8 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-black/5">
+                        <h2 class="font-black text-xl flex items-center gap-3">
+                            <span class="bg-blue-600 text-white p-2 rounded-xl text-sm">📋</span> Gastos Detallados
+                        </h2>
+                        <button onclick="addNewRow()" class="bg-blue-600 text-white text-[10px] font-black px-6 py-3 rounded-xl shadow-lg uppercase tracking-widest">
+                            + Añadir Gasto
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-black/[0.02] dark:bg-white/[0.02]">
+                                <tr>
+                                    <th class="p-5 secondary-label">Concepto</th>
+                                    <th class="p-5 secondary-label">Monto ($)</th>
+                                    <th class="p-5 secondary-label text-center">Peso Q1</th>
+                                    <th class="p-5 secondary-label text-right">Q1</th>
+                                    <th class="p-5 secondary-label text-right">Q2</th>
+                                    <th class="p-5"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-black/5 dark:divide-white/5"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Icon Picker -->
+    <div id="iconPicker" class="hidden fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-card p-8 rounded-[2rem] max-w-xs w-full shadow-2xl">
+            <h4 class="font-black mb-6">Icono</h4>
+            <div class="grid grid-cols-4 gap-3 max-h-60 overflow-y-auto pr-2" id="iconGrid"></div>
+            <button onclick="closeIconPicker()" class="w-full mt-6 py-3 font-bold text-rose-500">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+    <script src="script.js"></script>
+</body>
+</html>
